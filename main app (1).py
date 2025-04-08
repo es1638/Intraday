@@ -38,11 +38,9 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Missing current price or 52w high.")
             return False
 
-        # Ensure scalar values
-        high_52w = float(high_52w.values[0]) if isinstance(high_52w, pd.Series) else float(high_52w)
-        current_price = float(current_price.values[0]) if isinstance(current_price, pd.Series) else float(current_price)
-
-        print(f"{ticker}: current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
+        # Convert cleanly
+        high_52w = float(high_52w)
+        current_price = float(current_price)
 
         if current_price < 0.6 * high_52w:
             st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
