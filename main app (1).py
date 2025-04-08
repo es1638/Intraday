@@ -31,8 +31,8 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
 
-        high_52w = hist["High"].rolling(window=252).max().iloc[-1]
-        current_price = hist["Close"].iloc[-1]
+        high_52w = float(hist["High"].max())
+        current_price = float(np.atleast_1d(hist["Close"].dropna().iloc[-1]).item())
 
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
