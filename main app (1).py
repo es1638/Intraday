@@ -31,8 +31,8 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
 
-        high_52w = float(hist["High"].max())
-        current_price = float(np.atleast_1d(hist["Close"].dropna().iloc[-1]).item())
+        high_52w = hist["High"].rolling(window=252).max().iloc[-1]
+        current_price = hist["Close"].iloc[-1]
 
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
@@ -99,9 +99,8 @@ if st.session_state.screened_tickers:
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            # Check if model has predict_proba (e.g., classification model)
-            # Otherwise use predict() directly (e.g., regression model)
-            prob = model.predict(X).item()       # Regression prediction
+            # Safely convert prediction to float for threshold check
+            prob = float(model.predict(X).flatten()[0])
 
             results.append({
                 "Ticker": ticker,
@@ -119,4 +118,3 @@ if st.session_state.screened_tickers:
     st.dataframe(df_results)
 else:
     st.info("Please run the daily screen to populate tickers.")
-
