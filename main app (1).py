@@ -49,12 +49,16 @@ def passes_screening(ticker):
             return False
 
         if isinstance(high_52w, pd.Series):
-            high_52w = high_52w.item()
+            high_52w = high_52w.iloc[0]
         if isinstance(current_price, pd.Series):
-            current_price = current_price.item()
+            current_price = current_price.iloc[0]
+
+        # Final conversion to scalar
+        high_52w = float(high_52w)
+        current_price = float(current_price)
 
         if DEBUG:
-            st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
+            st.text(f"{ticker} Final Scalars — current_price: {current_price} ({type(current_price)}), high_52w: {high_52w} ({type(high_52w)})")
 
         if current_price < 0.6 * high_52w:
             st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
@@ -98,7 +102,7 @@ def get_live_features(ticker):
 if "screened_tickers" not in st.session_state:
     st.session_state.screened_tickers = []
 
-if st.button("🪱 Refresh Daily Screen"):
+if st.button("🦁 Refresh Daily Screen"):
     with st.spinner("Running daily screener..."):
         st.session_state.screened_tickers = get_screened_tickers()
         st.success(f"Screened {len(st.session_state.screened_tickers)} tickers.")
@@ -115,11 +119,7 @@ if st.session_state.screened_tickers:
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            pred = model.predict(X)
-            if len(pred) > 0:
-                prob = float(pred[0])
-            else:
-                raise ValueError("Empty prediction array")
+            prob = model.predict(X).item()
 
             results.append({
                 "Ticker": ticker,
@@ -138,4 +138,3 @@ if st.session_state.screened_tickers:
     st.dataframe(df_results)
 else:
     st.info("Please run the daily screen to populate tickers.")
-
