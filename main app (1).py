@@ -44,14 +44,18 @@ def passes_screening(ticker):
         high_52w = hist["High"].rolling(window=252).max().iloc[-1]
         current_price = hist["Close"].iloc[-1]
 
+        # Convert to scalars (handles single-item Series or already scalar)
+        if isinstance(high_52w, pd.Series):
+            high_52w = high_52w.values[0]
+        if isinstance(current_price, pd.Series):
+            current_price = current_price.values[0]
+
+        high_52w = float(high_52w)
+        current_price = float(current_price)
+
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
             return False
-
-        if isinstance(high_52w, pd.Series):
-            high_52w = high_52w.iloc[0]
-        if isinstance(current_price, pd.Series):
-            current_price = current_price.iloc[0]
 
         if DEBUG:
             st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
