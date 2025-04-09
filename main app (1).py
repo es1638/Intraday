@@ -41,24 +41,15 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
 
-        high_52w = hist["High"].rolling(window=252).max().iloc[-1]
-        current_price = hist["Close"].iloc[-1]
-
-        # Convert to scalars (handles single-item Series or already scalar)
-        if isinstance(high_52w, pd.Series):
-            high_52w = high_52w.values[0]
-        if isinstance(current_price, pd.Series):
-            current_price = current_price.values[0]
-
-        high_52w = float(high_52w)
-        current_price = float(current_price)
+        high_52w = float(hist["High"].rolling(window=252).max().iloc[-1])
+        current_price = float(hist["Close"].iloc[-1])
 
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
             return False
 
         if DEBUG:
-            st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
+            st.text(f"{ticker} current_price={current_price}, high_52w={high_52w}")
 
         if current_price < 0.6 * high_52w:
             st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
@@ -119,7 +110,7 @@ if st.session_state.screened_tickers:
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            prob = model.predict(X).item()
+            prob = model.predict(X)[0] if hasattr(model.predict(X), '__getitem__') else float(model.predict(X))
 
             results.append({
                 "Ticker": ticker,
@@ -138,4 +129,5 @@ if st.session_state.screened_tickers:
     st.dataframe(df_results)
 else:
     st.info("Please run the daily screen to populate tickers.")
+
 
