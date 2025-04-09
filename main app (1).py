@@ -6,6 +6,10 @@ import yfinance as yf
 import joblib
 from datetime import datetime, timedelta
 import lightgbm as lgb
+import traceback
+
+# Debug flag
+DEBUG = True
 
 # Set Streamlit page config
 st.set_page_config(layout="wide")
@@ -22,11 +26,17 @@ except Exception as e:
 def passes_screening(ticker):
     try:
         hist = yf.download(ticker, period="1y", interval="1d", progress=False)
+        if DEBUG:
+            st.text(f"{ticker} historical data tail:\n{hist.tail()}\n")
+
         if hist.empty or "Close" not in hist.columns or "Volume" not in hist.columns or "High" not in hist.columns:
             st.info(f"{ticker}: Missing required historical columns.")
             return False
 
         avg_volume = hist["Volume"].tail(30).mean()
+        if DEBUG:
+            st.text(f"{ticker} avg_volume: {avg_volume}")
+
         if pd.isna(avg_volume) or avg_volume < 10_000_000:
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
@@ -38,9 +48,13 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Missing current price or 52w high.")
             return False
 
-        # Convert cleanly
-        high_52w = float(high_52w)
-        current_price = float(current_price)
+        if isinstance(high_52w, pd.Series):
+            high_52w = high_52w.item()
+        if isinstance(current_price, pd.Series):
+            current_price = current_price.item()
+
+        if DEBUG:
+            st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
 
         if current_price < 0.6 * high_52w:
             st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
@@ -48,7 +62,8 @@ def passes_screening(ticker):
 
         return True
     except Exception as e:
-        st.warning(f"⚠️ Error with {ticker}: {e}")
+        error_details = traceback.format_exc()
+        st.warning(f"⚠️ Error with {ticker}:\n{error_details}")
         return False
 
 @st.cache_data(show_spinner=False)
@@ -100,7 +115,7 @@ if st.session_state.screened_tickers:
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            prob = model.predict(X).item()       # Regression prediction
+            prob = model.predict(X).item()
 
             results.append({
                 "Ticker": ticker,
@@ -108,10 +123,11 @@ if st.session_state.screened_tickers:
                 "Probability": "N/A"
             })
         except Exception as e:
+            error_details = traceback.format_exc()
             results.append({
                 "Ticker": ticker,
                 "Buy Signal": "⚠️ Error",
-                "Probability": str(e)
+                "Probability": error_details
             })
 
     df_results = pd.DataFrame(results)
