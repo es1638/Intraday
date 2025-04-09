@@ -138,10 +138,11 @@ if st.session_state.screened_tickers:
             })
         except Exception as e:
             error_details = traceback.format_exc()
+            safe_trace = str(error_details).replace('\n', ' ').replace('\r', ' ')[:300]
             results.append({
                 "Ticker": ticker,
                 "Buy Signal": "⚠️ Error",
-                "Probability": str(error_details)
+                "Probability": safe_trace
             })
 
     st.write("Raw results list:")
