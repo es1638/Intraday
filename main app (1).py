@@ -33,7 +33,11 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Missing required historical columns.")
             return False
 
-        avg_volume = hist["Volume"].tail(30).mean()
+        try:
+            avg_volume = hist["Volume"].tail(30).mean()
+        except Exception as e:
+            raise Exception(f"Error calculating avg_volume: {e}")
+
         if DEBUG:
             st.text(f"{ticker} avg_volume: {avg_volume}")
 
@@ -41,8 +45,15 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
 
-        high_52w = float(hist["High"].rolling(window=252).max().iloc[-1])
-        current_price = float(hist["Close"].iloc[-1])
+        try:
+            high_52w = float(hist["High"].rolling(window=252).max().iloc[-1])
+        except Exception as e:
+            raise Exception(f"Error calculating high_52w: {e}")
+
+        try:
+            current_price = float(hist["Close"].iloc[-1])
+        except Exception as e:
+            raise Exception(f"Error calculating current_price: {e}")
 
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
@@ -51,9 +62,12 @@ def passes_screening(ticker):
         if DEBUG:
             st.text(f"{ticker} current_price={current_price}, high_52w={high_52w}")
 
-        if current_price < 0.6 * high_52w:
-            st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
-            return False
+        try:
+            if current_price < 0.6 * high_52w:
+                st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
+                return False
+        except Exception as e:
+            raise Exception(f"Error comparing prices: {e}")
 
         return True
     except Exception as e:
@@ -105,12 +119,17 @@ threshold = st.slider("Buy Signal Threshold", 0.90, 1.00, 0.98, step=0.01)
 if st.session_state.screened_tickers:
     results = []
     for ticker in st.session_state.screened_tickers:
+        st.write("Processing:", ticker)
         try:
             X = get_live_features(ticker)
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            prob = model.predict(X)[0] if hasattr(model.predict(X), '__getitem__') else float(model.predict(X))
+            try:
+                pred = model.predict(X)
+                prob = pred[0] if hasattr(pred, '__getitem__') else float(pred)
+            except Exception as e:
+                raise Exception(f"Model prediction error: {e}")
 
             results.append({
                 "Ticker": ticker,
@@ -122,10 +141,12 @@ if st.session_state.screened_tickers:
             results.append({
                 "Ticker": ticker,
                 "Buy Signal": "⚠️ Error",
-                "Probability": error_details
+                "Probability": str(error_details)
             })
 
     df_results = pd.DataFrame(results)
+    st.text(df_results.dtypes)
+    st.text(df_results.head().to_string())
     st.dataframe(df_results)
 else:
     st.info("Please run the daily screen to populate tickers.")
