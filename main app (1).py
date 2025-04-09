@@ -53,12 +53,8 @@ def passes_screening(ticker):
         if isinstance(current_price, pd.Series):
             current_price = current_price.iloc[0]
 
-        # Final conversion to scalar
-        high_52w = float(high_52w)
-        current_price = float(current_price)
-
         if DEBUG:
-            st.text(f"{ticker} Final Scalars — current_price: {current_price} ({type(current_price)}), high_52w: {high_52w} ({type(high_52w)})")
+            st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
 
         if current_price < 0.6 * high_52w:
             st.info(f"{ticker}: Price {current_price} < 60% of 52w high {high_52w}")
@@ -138,3 +134,4 @@ if st.session_state.screened_tickers:
     st.dataframe(df_results)
 else:
     st.info("Please run the daily screen to populate tickers.")
+
