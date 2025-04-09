@@ -144,11 +144,19 @@ if st.session_state.screened_tickers:
                 "Probability": str(error_details)
             })
 
-    df_results = pd.DataFrame(results)
-    st.text(df_results.dtypes)
-    st.text(df_results.head().to_string())
-    st.dataframe(df_results)
+    st.write("Raw results list:")
+    for r in results:
+        for k, v in r.items():
+            st.write(f"{k}: {v} ({type(v)})")
+        st.write("---")
+
+    try:
+        df_results = pd.DataFrame(results)
+        st.text(df_results.dtypes)
+        st.text(df_results.head().to_string())
+        st.dataframe(df_results)
+    except Exception as e:
+        st.error(f"❌ DataFrame rendering failed: {e}")
 else:
     st.info("Please run the daily screen to populate tickers.")
-
 
