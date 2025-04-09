@@ -41,19 +41,17 @@ def passes_screening(ticker):
             st.info(f"{ticker}: Avg volume too low or NaN.")
             return False
 
-        high_52w_series = hist["High"].rolling(window=252).max()
-        current_price_series = hist["Close"]
-
-        if high_52w_series.empty or current_price_series.empty:
-            st.info(f"{ticker}: Missing 52w high or close series.")
-            return False
-
-        high_52w = high_52w_series.iloc[-1]
-        current_price = current_price_series.iloc[-1]
+        high_52w = hist["High"].rolling(window=252).max().iloc[-1]
+        current_price = hist["Close"].iloc[-1]
 
         if pd.isna(high_52w) or pd.isna(current_price):
             st.info(f"{ticker}: Missing current price or 52w high.")
             return False
+
+        if isinstance(high_52w, pd.Series):
+            high_52w = high_52w.item()
+        if isinstance(current_price, pd.Series):
+            current_price = current_price.item()
 
         if DEBUG:
             st.text(f"{ticker} current_price={current_price} ({type(current_price)}), high_52w={high_52w} ({type(high_52w)})")
@@ -100,7 +98,7 @@ def get_live_features(ticker):
 if "screened_tickers" not in st.session_state:
     st.session_state.screened_tickers = []
 
-if st.button("🦁 Refresh Daily Screen"):
+if st.button("🪱 Refresh Daily Screen"):
     with st.spinner("Running daily screener..."):
         st.session_state.screened_tickers = get_screened_tickers()
         st.success(f"Screened {len(st.session_state.screened_tickers)} tickers.")
@@ -117,7 +115,11 @@ if st.session_state.screened_tickers:
             if X.empty:
                 raise ValueError("No intraday data available")
 
-            prob = model.predict(X).item()
+            pred = model.predict(X)
+            if len(pred) > 0:
+                prob = float(pred[0])
+            else:
+                raise ValueError("Empty prediction array")
 
             results.append({
                 "Ticker": ticker,
